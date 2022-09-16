@@ -23,7 +23,7 @@ import pbPlist
 ################################################################################
 
 #MAIN_DOMAINS = [".GlobalPreferences_m","NSGlobalDomain"]
-MAIN_DOMAINS = ["NSGlobalDomain","com.apple.AppleMultitouchMouse","com.apple.AddressBook","com.apple.dock"]
+MAIN_DOMAINS = ["NSGlobalDomain", "com.apple.systempreferences", "com.apple.finder", "com.apple.desktopservices", "com.apple.Safari", "com.apple.AppleMultitouchTrackpad", "com.apple.dock","com.apple.universalaccess"]
 BAD_DOMAINS = ["com.apple.CloudSubscriptionFeatures.config","com.apple.Maps"]
 #DOMAINS = [".GlobalPreferences_m","NSGlobalDomain", "ContextStoreAgent", "MobileMeAccounts", "UBF8T346G9.OfficeOneDriveSyncIntegration", "com.apple.AMPLibraryAgent", "com.apple.Accessibility"]
 DOMAINS = []
@@ -65,16 +65,19 @@ def get_all_domains_bis_bis():
 # to compare configurations from last snapshot
 def compare_dicts(domain, before_dict, after_dict):
     if not after_dict:
-        logging.error("Domain " + domain + " does not exist")
+        logging.debug("Domain " + domain + " does not exist")
         return
     for key in after_dict:
         logging.debug(key)
         # check key adding...
-        if key in before_dict and ignore_string[1] not in key:
-            if after_dict[key] != before_dict[key]:
-                print("> "+domain+" : "+key+" : "+before_dict[key]+" -> "+ after_dict[key])
+        if key in before_dict:
+            if type(before_dict[key]) is dict and type(after_dict[key]) is dict:
+                compare_dicts(domain, before_dict[key], after_dict[key])
+            else:
+                if after_dict[key] != before_dict[key]:
+                    print("> "+domain+" : "+key+" : "+str(before_dict[key])+" -> "+ str(after_dict[key]))
         else:
-            print("+ "+domain+" : "+key+"  = "+after_dict[key])
+            print("+ "+domain+" : "+key+"  = "+str(after_dict[key]))
 
 def compare():
     print("DOMAIN   KEY     VALUES")
