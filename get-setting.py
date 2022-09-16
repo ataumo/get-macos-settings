@@ -113,19 +113,12 @@ def take_snapshots():
 
 def take_snapshots_from_timestamp(domain, timestamp):
     filename = "/tmp/config-" + timestamp + domain + ".plist"
-    command = "defaults read '"+ domain +".plist' > " + filename
-    #clean_command = "cat "+ filename + " | sed 's/, byte.* //g' > " + filename
-    clean_command = "sed -i -e 's/, byte.* //g' "+filename
+    command = "defaults export '"+ domain +"' " + filename
     error = os.system(command)
     if error:
-        command = "defaults read '"+ domain +"' > " + filename
-        second_error = os.system(command)
-        if second_error:
-            logging.error("Error to save this domain : "+ domain)
-            return ""
+        logging.error("Error to save this domain : "+ domain)
+        return ""
     logging.debug(command)
-    #cleaning file...
-    os.system(clean_command)
     return filename
 
 
@@ -168,7 +161,7 @@ def get_content_from_plist(path):
         return False, {}
     if not file.root:
         return False, {}
-    content = file.root.nativeType()
+    content = file.root
     return True, content
 
 def get_value_from_key(content,key):
