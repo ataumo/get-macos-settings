@@ -11,16 +11,13 @@ from datetime import datetime
 import subprocess
 import plistlib
 import json
+from unittest import case
 import pbPlist
+import biplist
+from tabulate import tabulate
 
 #logging.info("You passed an argument.")
 #logging.debug("Your Argument: %s" % args.argument)
-
-################################################################################
-#                                                                              #
-#                                 FUNCTIONS                                    #
-#                                                                              #
-################################################################################
 
 #MAIN_DOMAINS = [".GlobalPreferences_m","NSGlobalDomain"]
 MAIN_DOMAINS = ["NSGlobalDomain", "com.apple.systempreferences", "com.apple.finder", "com.apple.desktopservices", "com.apple.Safari", "com.apple.AppleMultitouchTrackpad", "com.apple.dock","com.apple.universalaccess"]
@@ -28,16 +25,29 @@ BAD_DOMAINS = ["com.apple.CloudSubscriptionFeatures.config","com.apple.Maps"]
 #DOMAINS = [".GlobalPreferences_m","NSGlobalDomain", "ContextStoreAgent", "MobileMeAccounts", "UBF8T346G9.OfficeOneDriveSyncIntegration", "com.apple.AMPLibraryAgent", "com.apple.Accessibility"]
 DOMAINS = []
 DYNAMIC_CONTENT = {}
+PRINT_TABLE = []
 
-# Gather our code in a main() function
+################################################################################
+#                                                                              #
+#                                 FUNCTIONS                                    #
+#                                                                              #
+################################################################################
+OKGREEN = '\033[92m'
+WARNING = '\033[93m'
+ENDC = '\033[0m'
+######
+def yellow_print(string):
+    print(f"{WARNING}"+string+f"{ENDC}")
+def green_print(string):
+    print(f"{OKGREEN}"+string+f"{ENDC}")
+######
 
-ignore_string = ["NSWindowFrameMainWindowFrameSystemPreferencesApp8.0",
-                "_DKThrottledActivityLast_DKKnowledgeStorageLogging_DKKnowledgeStorageDidInsertEventsNotification"]
 
-def get_timestamp_file_name():
-    now = datetime.now()
-    date_time = now.strftime("/tmp/config-%y%m%d-%H%M%S")
-    return date_time
+def dir_path(string):
+    if os.path.isdir(string):
+        return string
+    else:
+        raise NotADirectoryError(string)
 
 def check_outputs(command):
     process = subprocess.Popen(command, stdout=subprocess.PIPE)
@@ -45,22 +55,13 @@ def check_outputs(command):
     return output.decode('ascii')
 
 def quit_system_pref_app():
-    os.system("osascript -e \'tell application \"System Preferences\" to quit\'")
+    os.system("pkill -9 System\ Preferences")
 
 def get_all_domains():
     output = check_outputs(["defaults", "domains"])
     output = output.replace('\n','')
     array = output.split(', ')
     return array
-
-def get_all_domains_bis():
-    dirlist = os.listdir('/Users/louiscoumau/Library/Preferences')
-    return dirlist
-
-def get_all_domains_bis_bis():
-    path = '/Users/louiscoumau/Library/Preferences'
-    gendir = (file for file in os.listdir(path) if os.path.isfile(os.path.join(path, file)))
-    return gendir
 
 # to compare configurations from last snapshot
 def compare_dicts(domain, before_dict, after_dict):
@@ -70,93 +71,107 @@ def compare_dicts(domain, before_dict, after_dict):
     for key in after_dict:
         logging.debug(key)
         # check key adding...
+        all_content = False
+        to_print = True
+        if all_content:
+            to_print=True 
+        else:
+            if type(after_dict[key]) is biplist.Data:
+                to_print=False
+            if type(after_dict[key]) is datetime:
+                to_print=False
         if key in before_dict:
             if type(before_dict[key]) is dict and type(after_dict[key]) is dict:
-                compare_dicts(domain, before_dict[key], after_dict[key])
+                compare_dicts(domain+' : '+key, before_dict[key], after_dict[key])
+            elif type(before_dict[key]) is list and type(after_dict[key]) is list:
+                compare_lists(domain+' : '+key, before_dict[key], after_dict[key])
             else:
-                if after_dict[key] != before_dict[key]:
-                    print("> "+domain+" : "+key+" : "+str(before_dict[key])+" -> "+ str(after_dict[key]))
+                if after_dict[key] != before_dict[key] and to_print:
+                    content_1 = json.dumps(before_dict[key], indent=4, default=lambda o: o.__dict__, sort_keys=True)
+                    content_2 = json.dumps(after_dict[key], indent=4, default=lambda o: o.__dict__, sort_keys=True)
+                    #print("> "+domain+" : "+key+" : "+str(before_dict[key])+" -> "+ str(after_dict[key]))
+                    yellow_print("> "+domain+" : "+key+" : "+content_1+" -> "+ content_2)
+                    #PRINT_TABLE.append(['>',domain, key, str(before_dict[key]), str(after_dict[key])])
+        elif to_print:
+            content = json.dumps(after_dict[key], indent=4, default=lambda o: o.__dict__, sort_keys=True)
+            green_print("+ "+domain+" : "+key+" : "+ content)
+            #PRINT_TABLE.append(['+',domain, key, '', str(after_dict[key])])
+
+
+
+def compare_lists(domain, before_list, after_list):
+    if not after_list:
+        logging.debug("Domain " + domain + " does not exist")
+        return
+    for i in range(len(after_list)):
+        logging.debug(after_list[i])
+        # check key adding...
+        all_content = False
+        to_print = True
+        if all_content:
+            to_print=True 
         else:
-            print("+ "+domain+" : "+key+"  = "+str(after_dict[key]))
+            if after_list[i] is biplist.Data:
+                to_print=False
+            if after_list[i] is datetime:
+                to_print=False
+        if after_list[i] == 'NSPSignatureInfo':
+            print('OK')
+        if after_list[i] in before_list:
+            before_index = before_list.index(after_list[i])
+            if type(before_list[before_index]) is dict and type(after_list[i]) is dict:
+                compare_dicts(domain+' : '+ str(i) , before_list[before_index], after_list[i])
+            elif type(before_list[before_index]) is list and len(before_list[before_index])>1 and type(after_list[i]) is list:
+                compare_dicts(domain+' : '+ str(i), before_list[before_index], after_list[i])
+            #else:
+                #if to_print:
+                    #print("> "+domain+" : "+str(i)+" : "+str(before_list[before_index])+" -> "+ str(after_list[i]))
+                    #PRINT_TABLE.append(['>',domain, str(i), str(before_list[i]), str(after_list[i])])
+        elif to_print:
+            content = json.dumps(after_list[i], indent=4, default=lambda o: o.__dict__, sort_keys=True)
+            green_print("+ "+domain+" : "+str(i)+" : "+ content)
+            #PRINT_TABLE.append(['+',domain, str(i), '', str(after_list[i])])
 
 def compare():
-    print("DOMAIN   KEY     VALUES")
-    for domain in DOMAINS:
-        compare_dicts(
-            domain,
-            DYNAMIC_CONTENT[domain]["before"], 
-            DYNAMIC_CONTENT[domain]["after"])
+    print("-------- DIFF ---------")
+    col_names = ["Status", "Domain", "Key", "Old value", "New value"]
+    #t=PrettyTable(['Symbol', 'Domain', ''])
+    for domain in DYNAMIC_CONTENT:
+        if "before" in DYNAMIC_CONTENT[domain] and "after" in DYNAMIC_CONTENT[domain]: 
+            compare_dicts(
+                domain,
+                DYNAMIC_CONTENT[domain]["before"], 
+                DYNAMIC_CONTENT[domain]["after"])
+    print(tabulate(PRINT_TABLE, headers=col_names))
 
-# def take_snapshot():
-#     #snap_file = get_timestamp_file_name()
-#     snap_file = "/tmp/config-220909-204341.plist"
-#     #os.system("defaults read > " + snap_file)
-#     return snap_file
-
-def take_snapshot():
-    snap_file = get_timestamp_file_name()
-    output = check_outputs(["defaults", "read"])
-    with open(snap_file, 'wb') as fp:
-        plistlib.dump(output ,fp, fmt=plistlib.FMT_XML, sort_keys=True, skipkeys=False)
-        logging.debug("plutil -convert json "+snap_file)
-    return snap_file
-
-def take_snapshots():
-    snap_files = []
-    snap_file = get_timestamp_file_name()
-    for domain in DOMAINS:
-        filename = snap_file + "-" + domain + ".plist"
-        snap_files.append(filename)
-        error = os.system("defaults read "+ domain +" > " + filename)
-        if error:
-            filename = snap_file + "-" + domain
-            os.system("defaults read "+ domain +" > " + filename)
-        logging.debug("defaults read "+ domain +" > " + filename)
-    return snap_files
-
-def take_snapshots_from_timestamp(domain, timestamp):
-    filename = "/tmp/config-" + timestamp + domain + ".plist"
+def export_config(domain, directory):
+    filename = directory + '/' + domain + ".plist"
     command = "defaults export '"+ domain +"' " + filename
     error = os.system(command)
     if error:
-        logging.error("Error to save this domain : "+ domain)
         return ""
     logging.debug(command)
     return filename
 
 
-def snap_and_save(status):
+def snap_config(status=""):
     timestamp = datetime.now().strftime("%y%m%d-%H%M%S")
+    directory = '/tmp/config-'+timestamp
+    os.mkdir(directory)
     for domain in DOMAINS:
-        filename = take_snapshots_from_timestamp(domain, timestamp)
+        filename = export_config(domain, directory)
         if filename != "":
-            output, content = get_content_from_plist(filename)
-            if domain not in DYNAMIC_CONTENT:
-                DYNAMIC_CONTENT[domain] = {}
-            DYNAMIC_CONTENT[domain][status] = content
+            if not status:
+                output, content = get_content_from_plist(filename)
+                if domain not in DYNAMIC_CONTENT:
+                    DYNAMIC_CONTENT[domain] = {}
+                DYNAMIC_CONTENT[domain][status] = content
         else:
-            logging.debug("File is empty")
+            logging.error("Error to save this domain : "+ domain)
+    return directory
 
-def snap_and_save_bis(status):
-    #timestamp = datetime.now().strftime("%y%m%d-%H%M%S")
-    for domain in DOMAINS:
-        filename = '/Users/louiscoumau/Library/Preferences/'+domain
-        content = get_content_from_plist(filename)
-        if domain not in DYNAMIC_CONTENT:
-            DYNAMIC_CONTENT[domain]={}
-        DYNAMIC_CONTENT[domain][status] = content
-    return True
-
-
-
-def get_dict_from_file(filename):
-    with open(filename, 'rb') as fp:
-        #pl = plistlib.load(fp, dict_type=dict)
-        pl = json.load(fp)
-    return pl
 
 def get_content_from_plist(path):
-    test = pbPlist.pbPlist.PBPlist(path)
     try:
         file = pbPlist.pbPlist.PBPlist(path)
     except Exception:
@@ -167,8 +182,16 @@ def get_content_from_plist(path):
     content = file.root
     return True, content
 
-def get_value_from_key(content,key):
-    return content.get(key, None)
+def get_content_from_directory(status, directory):
+    for domain in os.listdir(directory):
+        f = os.path.join(directory, domain)
+        # checking if it is a file
+        if os.path.isfile(f):
+            logging.debug(f)
+            output, content = get_content_from_plist(f)
+            if domain not in DYNAMIC_CONTENT:
+                DYNAMIC_CONTENT[domain] = {}
+            DYNAMIC_CONTENT[domain][status] = content
 
 
 
@@ -182,8 +205,13 @@ def main(args, loglevel):
     # Snapshot case
     #
     if args.snapshot:
-        print("Saving configuration...")
-        take_snapshot()
+        if args.allDomains:
+            print("Saving configuration for all domains...")
+        else : 
+            print("Saving configuration for these domains : ")
+            print(DOMAINS)
+        directory = snap_config()
+        print(directory+" has been created.")
 
     #
     # Record case
@@ -191,18 +219,24 @@ def main(args, loglevel):
     if args.record:
         print("Saving configuration...")
         #snap_file = take_snapshot()
-        snap_and_save('before')
+        snap_config('before')
         answer = input("Recording... Do anything in System Preferences application... [o/Q] ") 
         if answer != "o": 
             print("Aborting...")
             exit(1)
         else: 
             quit_system_pref_app()
-            #new_snaps_files = take_snapshots()
-            snap_and_save('after')
+            snap_config('after')
             # modification
             #DYNAMIC_CONTENT[DOMAINS[1]]["after"]["AppleMiniaturizeOnDoubleClick"] = '1'
             compare()
+
+    if args.diff:
+        oldconfig, newconfig = args.diff
+        print(oldconfig, newconfig)
+        get_content_from_directory('before',oldconfig)
+        get_content_from_directory('after',newconfig)
+        compare()
 
 
 ################################################################################
@@ -240,6 +274,13 @@ if __name__ == '__main__':
         "--verbose", 
         action="store_true",
         help="to enable a verbose mode")
+    parser.add_argument(
+        "-d", 
+        "--diff", 
+        nargs=2,
+        type=dir_path,
+        metavar=('old-config-directory', 'new-config-directory'),
+        help="to compare 2 configurations (they mys be already saved in directory)")
 
     args = parser.parse_args()
 
@@ -255,6 +296,7 @@ if __name__ == '__main__':
         DOMAINS = get_all_domains()
     else:
         DOMAINS = MAIN_DOMAINS
+    
     
     logging.debug(DOMAINS)
 
