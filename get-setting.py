@@ -202,6 +202,17 @@ def main(args, loglevel):
     quit_system_pref_app()
 
     #
+    # Setup domains array
+    #
+    if args.allDomains:
+        logging.debug("Getting all domains...")
+        DOMAINS = get_all_domains()
+        logging.debug("Done.")
+    else:
+        DOMAINS = MAIN_DOMAINS
+        logging.debug("Selected domains :%s\n" % str(MAIN_DOMAINS))
+
+    #
     # Snapshot case
     #
     if args.snapshot:
@@ -253,7 +264,7 @@ if __name__ == '__main__':
         description="Does a thing to some stuff.",
         epilog="As an alternative to the commandline, params can be placed in a file, one per line, and specified on the commandline like '%(prog)s @params.conf'.",
         fromfile_prefix_chars='@')
-    # TODO Specify your real parameters here.
+    # Parameters
     parser.add_argument(
         "-r", 
         "--record", 
@@ -289,15 +300,5 @@ if __name__ == '__main__':
         loglevel = logging.DEBUG
     else:
         loglevel = logging.INFO
-    #
-    # Setup domains array
-    #
-    if args.allDomains:
-        DOMAINS = get_all_domains()
-    else:
-        DOMAINS = MAIN_DOMAINS
-    
-    
-    logging.debug(DOMAINS)
 
     main(args, loglevel)
