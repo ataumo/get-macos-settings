@@ -54,7 +54,7 @@ def check_outputs(command):
     return output.decode('ascii')
 
 def quit_system_pref_app():
-    os.system("pkill -9 System\ Preferences")
+    os.system(r"pkill -9 System\ Preferences")
 
 def get_all_domains():
     output = check_outputs(["defaults", "domains"])
