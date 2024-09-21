@@ -23,7 +23,6 @@ from tabulate import tabulate
 MAIN_DOMAINS = ["NSGlobalDomain", "com.apple.systempreferences", "com.apple.finder", "com.apple.desktopservices", "com.apple.Safari", "com.apple.AppleMultitouchTrackpad", "com.apple.dock","com.apple.universalaccess"]
 BAD_DOMAINS = ["com.apple.CloudSubscriptionFeatures.config","com.apple.Maps"]
 #DOMAINS = [".GlobalPreferences_m","NSGlobalDomain", "ContextStoreAgent", "MobileMeAccounts", "UBF8T346G9.OfficeOneDriveSyncIntegration", "com.apple.AMPLibraryAgent", "com.apple.Accessibility"]
-DOMAINS = []
 DYNAMIC_CONTENT = {}
 PRINT_TABLE = []
 
@@ -154,11 +153,12 @@ def export_config(domain, directory):
     return filename
 
 
-def snap_config(status=""):
+def snap_config(scope_domains, status=""):
+    logging.debug("Function : snap_config")
     timestamp = datetime.now().strftime("%y%m%d-%H%M%S")
     directory = '/tmp/config-'+timestamp
     os.mkdir(directory)
-    for domain in DOMAINS:
+    for domain in scope_domains:
         filename = export_config(domain, directory)
         if filename != "":
             if not status:
@@ -206,10 +206,10 @@ def main(args, loglevel):
     #
     if args.allDomains:
         logging.debug("Getting all domains...")
-        DOMAINS = get_all_domains()
+        scope_domains = get_all_domains()
         logging.debug("Done.")
     else:
-        DOMAINS = MAIN_DOMAINS
+        scope_domains = MAIN_DOMAINS
         logging.debug("Selected domains :%s\n" % str(MAIN_DOMAINS))
 
     #
@@ -220,8 +220,8 @@ def main(args, loglevel):
             print("Saving configuration for all domains...")
         else : 
             print("Saving configuration for these domains : ")
-            print(DOMAINS)
-        directory = snap_config()
+            print(scope_domains)
+        directory = snap_config(scope_domains)
         print(directory+" has been created.")
 
     #
@@ -230,14 +230,14 @@ def main(args, loglevel):
     if args.record:
         print("Saving configuration...")
         #snap_file = take_snapshot()
-        snap_config('before')
+        snap_config(scope_domains, 'before')
         answer = input("Recording... Do anything in System Preferences application... [o/Q] ") 
         if answer != "o": 
             print("Aborting...")
             exit(1)
         else: 
             quit_system_pref_app()
-            snap_config('after')
+            snap_config(scope_domains, 'after')
             # modification
             #DYNAMIC_CONTENT[DOMAINS[1]]["after"]["AppleMiniaturizeOnDoubleClick"] = '1'
             compare()
