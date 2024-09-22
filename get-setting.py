@@ -26,6 +26,8 @@ BAD_DOMAINS = ["com.apple.CloudSubscriptionFeatures.config","com.apple.Maps"]
 DYNAMIC_CONTENT = {}
 PRINT_TABLE = []
 
+MAX_VALUE_LENGTH = 15
+
 ################################################################################
 #                                                                              #
 #                                 FUNCTIONS                                    #
@@ -40,6 +42,19 @@ def yellow_print(string):
 def green_print(string):
     print(f"{OKGREEN}"+string+f"{ENDC}")
 ######
+
+def truncate_text(text_object):
+    """
+    Truncate the input text to a length defined by MAX_VALUE_LENGTH, 
+    and append '...' at the end if the text is longer than this limit.
+    """
+    text=str(text_object)
+    # Remove all newline characters
+    cleaned_text = text.replace('\n', ' ')
+    if len(cleaned_text) > MAX_VALUE_LENGTH:
+        return cleaned_text[:MAX_VALUE_LENGTH - 3] + "..."
+    else:
+        return cleaned_text
 
 def custom_serializer(o):
     if isinstance(o, datetime):
@@ -127,7 +142,7 @@ def compare_dicts(domain, before_dict, after_dict):
                         content_1 = json.dumps(before_dict[key], indent=4, default=custom_serializer, sort_keys=True)
                         content_2 = json.dumps(after_dict[key], indent=4, default=custom_serializer, sort_keys=True)
 
-                    yellow_print("> "+domain+" : "+str(key)+" : "+str(content_1)+" -> "+ str(content_2))
+                    yellow_print("> "+domain+" : "+str(key)+" : "+truncate_text(content_1)+" -> "+ truncate_text(content_2))
                     PRINT_TABLE.append(['>',domain, key, str(content_1), str(content_2)])
         # data does not exists in new configuration (new value)
         elif to_print:
@@ -135,7 +150,7 @@ def compare_dicts(domain, before_dict, after_dict):
                 content = json.dumps(after_dict[key], indent=4, default=custom_serializer, sort_keys=True)
             else:
                 content = after_dict[key]
-            green_print("+ "+domain+" : "+key+" : "+ str(content))
+            green_print("+ "+domain+" : "+key+" : "+ truncate_text(content))
             PRINT_TABLE.append(['+',domain, key, '', str(content)])
 
 
