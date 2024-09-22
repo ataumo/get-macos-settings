@@ -104,23 +104,23 @@ def compare_dicts(domain, before_dict, after_dict):
             to_print=True 
         else:
             # ignore this types 
-            if type(after_dict[key]) is biplist.Data:
+            if isinstance(after_dict[key], biplist.Data):
                 to_print=False
             # datetime
-            if type(after_dict[key]) is datetime:
+            if isinstance(after_dict[key], datetime):
                 to_print=False
             # timestamps
             if isinstance(after_dict[key], float) and is_valid_timestamp(after_dict[key]):
                 to_print=False
         # data exists in two configurations
         if key in before_dict:
-            if type(before_dict[key]) is dict and type(after_dict[key]) is dict:
+            if isinstance(before_dict[key], dict) and isinstance(after_dict[key], dict):
                 compare_dicts(domain+' : '+key, before_dict[key], after_dict[key])
-            elif type(before_dict[key]) is list and type(after_dict[key]) is list:
+            elif isinstance(before_dict[key], list) and isinstance(after_dict[key], list):
                 compare_lists(domain+' : '+key, before_dict[key], after_dict[key])
             else:
                 if after_dict[key] != before_dict[key] and to_print:
-                    if type(after_dict[key]) is not dict:
+                    if not isinstance(after_dict[key], dict):
                         content_1 = before_dict[key]
                         content_2 = after_dict[key]
                     else :
