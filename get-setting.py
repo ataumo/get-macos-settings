@@ -41,6 +41,24 @@ def green_print(string):
     print(f"{OKGREEN}"+string+f"{ENDC}")
 ######
 
+def is_valid_timestamp(value):
+    # Check if the value is a float and within a reasonable timestamp range
+    # In macOS, timestamps in Property List (plist) files are represented as the number of seconds since the reference date, 
+    # which is January 1, 2001, 00:00:00 UTC (978310800). This is different from the Unix timestamp format, 
+    # which is based on the number of seconds since January 1, 1970.
+    # source : https://www.epochconverter.com/coredata
+    start=978310800
+    unix_timestamp = start+value
+    if isinstance(unix_timestamp, float) and 1577840400 <= unix_timestamp <= 32503680000:  # Between 2020 and 3000 (as unix time stamp)
+        try:
+            # Try to convert it to a datetime object
+            timestamp=datetime.fromtimestamp(unix_timestamp)
+            logging.debug("timestamp :" + str(timestamp))
+            return True
+        except (OSError, ValueError):
+            # If there's an error in conversion, it's not a valid timestamp
+            return False
+    return False
 
 def dir_path(string):
     if os.path.isdir(string):
@@ -78,6 +96,8 @@ def compare_dicts(domain, before_dict, after_dict):
             if type(after_dict[key]) is biplist.Data:
                 to_print=False
             if type(after_dict[key]) is datetime:
+                to_print=False
+            if isinstance(after_dict[key], float) and is_valid_timestamp(after_dict[key]):
                 to_print=False
         if key in before_dict:
             if type(before_dict[key]) is dict and type(after_dict[key]) is dict:
