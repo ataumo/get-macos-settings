@@ -25,6 +25,8 @@ optional arguments:
 
 ## Examples 
 
+![title](output-example.png)
+
 ### To scan a configuration 
 >The configuration will be seved in `/tmp/config-<timestamp>`.
 
@@ -36,3 +38,23 @@ optional arguments:
 ### To compare 2 configurations :
 `./get-setting.py -d /tmp/config-220924-211341 /tmp/config-220924-212359`
 
+## Use cases
+
+This tool could be used to identify precisely what the differences between two macos configurations (on the same hardware), after editing configuration for example, and then, apply this configuration with `defaults` or `PlistBuddy` commands, or automatically with [HardeningPuppy](https://github.com/ataumo/macos_hardening) script.
+
+## Env
+
+It's recommended to use a dedicated env to run this this python script.
+- Create env : `python3.12 -m venv myenv`
+- Run it : `source myenv/bin/activate`
+
+pbPlist package has been modified to fix error :
+file : myenv/lib/python3.12/site-packages/pbPlist/pbRoot.py
++ from collections.abc import MutableMapping
+
+- class pbRoot(collections.MutableMapping):
++ class pbRoot(MutableMapping):
+
+## Contribution 
+
+See [TODO.md](output-example.png) file to show what could be done/added on this project.
