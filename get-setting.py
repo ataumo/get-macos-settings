@@ -41,6 +41,13 @@ def green_print(string):
     print(f"{OKGREEN}"+string+f"{ENDC}")
 ######
 
+def custom_serializer(o):
+    if isinstance(o, datetime):
+        # Convert datetime object to ISO 8601 string format
+        return o.isoformat()
+    # Fallback for other objects
+    return o.__dict__
+
 def is_valid_timestamp(value):
     # Check if the value is a float and within a reasonable timestamp range
     # In macOS, timestamps in Property List (plist) files are represented as the number of seconds since the reference date, 
@@ -106,15 +113,10 @@ def compare_dicts(domain, before_dict, after_dict):
                 compare_lists(domain+' : '+key, before_dict[key], after_dict[key])
             else:
                 if after_dict[key] != before_dict[key] and to_print:
-                    content_1 = json.dumps(before_dict[key], indent=4, default=lambda o: o.__dict__, sort_keys=True)
-                    content_2 = json.dumps(after_dict[key], indent=4, default=lambda o: o.__dict__, sort_keys=True)
-                    #print("> "+domain+" : "+key+" : "+str(before_dict[key])+" -> "+ str(after_dict[key]))
-                    yellow_print("> "+domain+" : "+key+" : "+content_1+" -> "+ content_2)
-                    #PRINT_TABLE.append(['>',domain, key, str(before_dict[key]), str(after_dict[key])])
+                        content_1 = json.dumps(before_dict[key], indent=4, default=custom_serializer, sort_keys=True)
+                        content_2 = json.dumps(after_dict[key], indent=4, default=custom_serializer, sort_keys=True)
         elif to_print:
-            content = json.dumps(after_dict[key], indent=4, default=lambda o: o.__dict__, sort_keys=True)
-            green_print("+ "+domain+" : "+key+" : "+ content)
-            #PRINT_TABLE.append(['+',domain, key, '', str(after_dict[key])])
+                content = json.dumps(after_dict[key], indent=4, default=custom_serializer, sort_keys=True)
 
 
 
