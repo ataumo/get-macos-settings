@@ -19,10 +19,10 @@ from tabulate import tabulate
 #logging.info("You passed an argument.")
 #logging.debug("Your Argument: %s" % args.argument)
 
-#MAIN_DOMAINS = [".GlobalPreferences_m","NSGlobalDomain"]
+# Mains domains are used by default when '-a', '--all-domains' option is not given
 MAIN_DOMAINS = ["NSGlobalDomain", "com.apple.systempreferences", "com.apple.finder", "com.apple.desktopservices", "com.apple.Safari", "com.apple.AppleMultitouchTrackpad", "com.apple.dock","com.apple.universalaccess"]
-BAD_DOMAINS = ["com.apple.CloudSubscriptionFeatures.config","com.apple.Maps"]
-#DOMAINS = [".GlobalPreferences_m","NSGlobalDomain", "ContextStoreAgent", "MobileMeAccounts", "UBF8T346G9.OfficeOneDriveSyncIntegration", "com.apple.AMPLibraryAgent", "com.apple.Accessibility"]
+# A domain to ignore is one on which it is strongly recommended not to manually apply any modifications (because the data is too complex) or because it provides no information about the OS configuration.
+EXCLUDED_DOMAINS = ["com.apple.CloudSubscriptionFeatures.config","com.apple.Maps", "com.apple.spaces.plist"]
 DYNAMIC_CONTENT = {}
 PRINT_TABLE = []
 
