@@ -92,20 +92,27 @@ def compare_dicts(domain, before_dict, after_dict):
     if not after_dict:
         logging.debug("Domain " + domain + " does not exist")
         return
-    for key in after_dict:
-        logging.debug(key)
-        # check key adding...
+    if type(after_dict) is not dict:
+        logging.debug("This content is not a dict")
+        return
+    for key in after_dict.keys():
+        logging.debug("----------------------------> " + str(key))
+        # check added keys...
         all_content = False
         to_print = True
         if all_content:
             to_print=True 
         else:
+            # ignore this types 
             if type(after_dict[key]) is biplist.Data:
                 to_print=False
+            # datetime
             if type(after_dict[key]) is datetime:
                 to_print=False
+            # timestamps
             if isinstance(after_dict[key], float) and is_valid_timestamp(after_dict[key]):
                 to_print=False
+        # data exists in two configurations
         if key in before_dict:
             if type(before_dict[key]) is dict and type(after_dict[key]) is dict:
                 compare_dicts(domain+' : '+key, before_dict[key], after_dict[key])
@@ -113,10 +120,23 @@ def compare_dicts(domain, before_dict, after_dict):
                 compare_lists(domain+' : '+key, before_dict[key], after_dict[key])
             else:
                 if after_dict[key] != before_dict[key] and to_print:
+                    if type(after_dict[key]) is not dict:
+                        content_1 = before_dict[key]
+                        content_2 = after_dict[key]
+                    else :
                         content_1 = json.dumps(before_dict[key], indent=4, default=custom_serializer, sort_keys=True)
                         content_2 = json.dumps(after_dict[key], indent=4, default=custom_serializer, sort_keys=True)
+
+                    yellow_print("> "+domain+" : "+str(key)+" : "+str(content_1)+" -> "+ str(content_2))
+                    PRINT_TABLE.append(['>',domain, key, str(content_1), str(content_2)])
+        # data does not exists in new configuration (new value)
         elif to_print:
+            if isinstance(after_dict[key], dict):
                 content = json.dumps(after_dict[key], indent=4, default=custom_serializer, sort_keys=True)
+            else:
+                content = after_dict[key]
+            green_print("+ "+domain+" : "+key+" : "+ str(content))
+            PRINT_TABLE.append(['+',domain, key, '', str(content)])
 
 
 
