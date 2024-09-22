@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 
-from distutils.log import debug
 from fileinput import filename
 from sqlite3 import Timestamp
 import sys
